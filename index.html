@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>供應鏈戰爭・互動世界 — 砂鹽鐵銅油鋰的全球之旅</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;900&family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#05080f;
+  --ink:#e8e3d8;
+  --ink-dim:#8a8577;
+  --amber:#eab308;
+  --panel:rgba(10,15,26,.88);
+  --line:rgba(232,227,216,.14);
+  --sand:#eab308; --salt:#7dd3fc; --iron:#ef4444;
+  --copper:#2dd4bf; --oil:#a78bfa; --lithium:#4ade80;
+  --serif:'Noto Serif TC',serif;
+  --sans:'Noto Sans TC',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:var(--sans)}
+#scene{position:fixed;inset:0}
+canvas{display:block}
+
+/* ── grain overlay ── */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:5;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");}
+
+/* ── header ── */
+header{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:baseline;gap:18px;
+  padding:20px 28px;pointer-events:none}
+header .t{font-family:var(--serif);font-weight:900;font-size:26px;letter-spacing:.12em}
+header .s{font-family:var(--mono);font-size:11px;color:var(--ink-dim);letter-spacing:.18em}
+header .author{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-dim);letter-spacing:.1em}
+
+/* ── left rail: material selector ── */
+#rail{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:21;display:flex;flex-direction:column;gap:2px;padding-left:14px;width:118px}
+.mat-btn{display:flex;align-items:center;gap:12px;background:none;border:none;cursor:pointer;
+  padding:9px 14px 9px 10px;border-left:2px solid transparent;transition:all .25s;text-align:left}
+.mat-btn .dot{width:9px;height:9px;border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c);flex:none;transition:transform .25s}
+.mat-btn .zh{font-family:var(--serif);font-weight:600;font-size:19px;color:var(--ink-dim);transition:color .25s;letter-spacing:.2em;white-space:nowrap}
+.mat-btn .en{font-family:var(--mono);font-size:9px;color:var(--ink-dim);opacity:.5;letter-spacing:.22em}
+.mat-btn:hover .zh{color:var(--ink)}
+.mat-btn.active{border-left-color:var(--c)}
+.mat-btn.active .zh{color:var(--c)}
+.mat-btn.active .dot{transform:scale(1.5)}
+.mat-btn .cnt{font-family:var(--mono);font-size:9px;color:var(--ink-dim);margin-left:auto}
+
+/* ── material intro card (top-left, under header) ── */
+#intro-card{position:fixed;left:138px;top:84px;z-index:18;width:330px;max-width:calc(100vw - 166px);
+  background:var(--panel);border:1px solid var(--line);border-top:2px solid var(--mc,var(--amber));
+  padding:18px 20px;backdrop-filter:blur(10px);transition:opacity .4s,transform .4s}
+#intro-card.hidden{opacity:0;transform:translateY(-8px);pointer-events:none}
+#intro-card .label{font-family:var(--mono);font-size:9px;letter-spacing:.3em;color:var(--mc,var(--amber));margin-bottom:8px}
+#intro-card h2{font-family:var(--serif);font-weight:900;font-size:22px;margin-bottom:8px;letter-spacing:.05em}
+#intro-card p{font-size:12.5px;line-height:1.85;color:var(--ink);opacity:.85}
+#intro-card .rule{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);font-size:11.5px;line-height:1.8;color:var(--ink-dim)}
+#intro-card .rule b{color:var(--mc,var(--amber));font-weight:500}
+
+/* ── detail card (right) ── */
+#card{position:fixed;right:28px;top:84px;bottom:96px;z-index:22;width:368px;max-width:calc(100vw - 56px);
+  background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(12px);
+  display:flex;flex-direction:column;transition:opacity .35s,transform .35s}
+#card.hidden{opacity:0;transform:translateX(20px);pointer-events:none}
+#card .bar{height:3px;background:var(--cc,var(--amber))}
+#card .head{padding:18px 22px 12px;border-bottom:1px solid var(--line)}
+#card .kicker{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;letter-spacing:.25em;color:var(--cc,var(--amber));margin-bottom:8px;padding-right:26px}
+#card h3{font-family:var(--serif);font-weight:900;font-size:24px;letter-spacing:.04em;line-height:1.3}
+#card .country{font-family:var(--mono);font-size:11px;color:var(--ink-dim);margin-top:4px;letter-spacing:.12em}
+#card .body{padding:16px 22px;overflow-y:auto;flex:1}
+#card .body::-webkit-scrollbar{width:3px}
+#card .body::-webkit-scrollbar-thumb{background:var(--line)}
+#card .role{font-size:13px;line-height:1.9;margin-bottom:14px}
+#card .num{background:rgba(232,227,216,.05);border-left:2px solid var(--cc,var(--amber));
+  padding:10px 14px;margin-bottom:14px;font-family:var(--mono);font-size:12px;line-height:1.8}
+#card .num .nl{font-size:9px;letter-spacing:.3em;color:var(--ink-dim);display:block;margin-bottom:4px}
+#card .story{font-size:12.5px;line-height:2;color:var(--ink);opacity:.82;text-align:justify}
+#card .story::before{content:'■ 現場';font-family:var(--mono);font-size:9px;letter-spacing:.3em;color:var(--cc,var(--amber));display:block;margin-bottom:6px}
+#card .spof-tag{display:inline-block;margin-top:14px;padding:4px 10px;border:1px solid #ef4444;color:#ef4444;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;animation:blink 2.4s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.45}}
+#card .close{position:absolute;top:14px;right:14px;background:none;border:none;color:var(--ink-dim);
+  font-size:18px;cursor:pointer;font-family:var(--mono)}
+#card .close:hover{color:var(--ink)}
+#card .nav{display:flex;border-top:1px solid var(--line)}
+#card .nav button{flex:1;background:none;border:none;color:var(--ink-dim);font-family:var(--mono);
+  font-size:10px;letter-spacing:.2em;padding:13px;cursor:pointer;transition:all .2s}
+#card .nav button:hover{color:var(--cc,var(--amber));background:rgba(232,227,216,.04)}
+#card .nav button+button{border-left:1px solid var(--line)}
+
+/* ── bottom bar ── */
+#bottom{position:fixed;bottom:0;left:0;right:0;z-index:20;display:flex;align-items:center;gap:20px;
+  padding:16px 28px;pointer-events:none}
+#bottom>*{pointer-events:auto}
+#progress{font-family:var(--mono);font-size:10.5px;letter-spacing:.15em;color:var(--ink-dim)}
+#progress b{color:var(--amber);font-weight:700}
+#pbar{width:140px;height:2px;background:var(--line);position:relative}
+#pbar i{position:absolute;left:0;top:0;bottom:0;background:var(--amber);transition:width .5s}
+#spof-toggle{margin-left:auto;background:none;border:1px solid var(--line);color:var(--ink-dim);
+  font-family:var(--mono);font-size:10px;letter-spacing:.2em;padding:9px 16px;cursor:pointer;transition:all .25s}
+#spof-toggle:hover{border-color:#ef4444;color:#ef4444}
+#spof-toggle.on{border-color:#ef4444;color:#ef4444;background:rgba(239,68,68,.08);box-shadow:0 0 18px rgba(239,68,68,.15)}
+#hint{font-family:var(--mono);font-size:9.5px;color:var(--ink-dim);opacity:.6;letter-spacing:.1em}
+
+/* ── node labels ── */
+.nlabel{position:fixed;z-index:15;pointer-events:auto;cursor:pointer;transform:translate(-50%,-130%);
+  font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--ink);white-space:nowrap;
+  padding:3px 8px;background:rgba(5,8,15,.72);border:1px solid transparent;transition:border-color .2s,color .2s;
+  user-select:none}
+.nlabel:hover,.nlabel.sel{border-color:var(--lc);color:var(--lc)}
+.nlabel.visited::after{content:' ✓';color:var(--lc);opacity:.7}
+.nlabel.behind{opacity:0;pointer-events:none}
+
+/* ── overlay ── */
+#overlay{position:fixed;inset:0;z-index:50;background:radial-gradient(ellipse at 50% 40%,rgba(10,18,34,.9),rgba(5,8,15,.985));
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  transition:opacity .8s;padding:24px}
+#overlay.hidden{opacity:0;pointer-events:none}
+#overlay .k{font-family:var(--mono);font-size:11px;letter-spacing:.5em;color:var(--amber);margin-bottom:22px}
+#overlay h1{font-family:var(--serif);font-weight:900;font-size:clamp(34px,6vw,64px);letter-spacing:.14em;line-height:1.25}
+#overlay h1 .mats{display:block;font-size:clamp(16px,2.6vw,24px);font-weight:600;margin-top:14px;letter-spacing:.4em}
+#overlay h1 .mats span{padding:0 2px}
+#overlay p{max-width:520px;margin:26px 0 36px;font-size:14px;line-height:2.1;color:var(--ink);opacity:.75;text-align:justify}
+#overlay button{background:none;border:1px solid var(--amber);color:var(--amber);font-family:var(--mono);
+  font-size:13px;letter-spacing:.4em;padding:15px 42px 15px 46px;cursor:pointer;transition:all .3s}
+#overlay button:hover{background:var(--amber);color:var(--bg);box-shadow:0 0 40px rgba(234,179,8,.35)}
+#overlay .src{margin-top:30px;font-family:var(--mono);font-size:10px;color:var(--ink-dim);letter-spacing:.15em}
+
+/* ── finale ── */
+#finale{position:fixed;inset:0;z-index:60;background:rgba(5,8,15,.96);display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity 1s;padding:24px}
+#finale.show{opacity:1;pointer-events:auto}
+#finale .inner{max-width:560px;border:1px solid var(--line);border-top:2px solid var(--amber);padding:44px 48px;background:var(--panel)}
+#finale .k{font-family:var(--mono);font-size:10px;letter-spacing:.4em;color:var(--amber);margin-bottom:18px}
+#finale h2{font-family:var(--serif);font-weight:900;font-size:30px;margin-bottom:20px;letter-spacing:.08em}
+#finale p{font-size:13.5px;line-height:2.15;opacity:.85;text-align:justify;margin-bottom:14px}
+#finale button{margin-top:14px;background:none;border:1px solid var(--line);color:var(--ink-dim);
+  font-family:var(--mono);font-size:11px;letter-spacing:.3em;padding:11px 26px;cursor:pointer}
+#finale button:hover{border-color:var(--amber);color:var(--amber)}
+
+#toast{position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:40;background:var(--panel);
+  border:1px solid var(--line);padding:10px 22px;font-family:var(--mono);font-size:11px;color:var(--ink-dim);
+  opacity:0;transition:opacity .4s;pointer-events:none;letter-spacing:.1em}
+#toast.show{opacity:1}
+
+@media (max-width:780px){
+  header .author{display:none}
+  header .t{font-size:20px}
+  #intro-card{display:none}
+  #rail{padding-left:6px}
+  .mat-btn .en,.mat-btn .cnt{display:none}
+  .mat-btn .zh{font-size:16px}
+  #card{right:12px;left:12px;width:auto;top:auto;bottom:74px;max-height:52vh}
+  #hint{display:none}
+}
+</style>
+</head>
+<body>
+<div id="scene"></div>
+
+<header>
+  <div class="t">供應鏈戰爭</div>
+  <div class="s">MATERIAL WORLD · 互動世界</div>
+  <div class="author">ED CONWAY · 天下文化 2023</div>
+</header>
+
+<nav id="rail"></nav>
+
+<aside id="intro-card" class="hidden">
+  <div class="label" id="ic-label"></div>
+  <h2 id="ic-title"></h2>
+  <p id="ic-text"></p>
+  <div class="rule" id="ic-rule"></div>
+</aside>
+
+<aside id="card" class="hidden">
+  <div class="bar"></div>
+  <button class="close" id="card-close">✕</button>
+  <div class="head">
+    <div class="kicker"><span id="c-mat"></span><span id="c-coord"></span></div>
+    <h3 id="c-name"></h3>
+    <div class="country" id="c-country"></div>
+  </div>
+  <div class="body">
+    <div class="role" id="c-role"></div>
+    <div class="num"><span class="nl">KEY NUMBER · 關鍵數字</span><span id="c-num"></span></div>
+    <div class="story" id="c-story"></div>
+    <div id="c-spof"></div>
+  </div>
+  <div class="nav">
+    <button id="c-prev">← 上一站</button>
+    <button id="c-next">下一站 →</button>
+  </div>
+</aside>
+
+<div id="bottom">
+  <div id="progress">已探索 <b id="p-n">0</b> / <span id="p-t">0</span> 個節點</div>
+  <div id="pbar"><i id="p-fill" style="width:0"></i></div>
+  <div id="hint">拖曳旋轉 · 滾輪縮放 · 點擊節點</div>
+  <button id="spof-toggle">⚠ 單點故障模式</button>
+</div>
+
+<div id="overlay">
+  <div class="k">INTERACTIVE ATLAS · 一本書的互動地圖</div>
+  <h1>供應鏈戰爭
+    <span class="mats">
+      <span style="color:var(--sand)">砂</span>·<span style="color:var(--salt)">鹽</span>·<span style="color:var(--iron)">鐵</span>·<span style="color:var(--copper)">銅</span>·<span style="color:var(--oil)">油</span>·<span style="color:var(--lithium)">鋰</span>
+    </span>
+  </h1>
+  <p>我們以為經濟已經「去物質化」——其實只是把開採外包到看不見的地方。這顆地球上標記了 Ed Conway 在書中走訪的礦場、工廠與港口：六種材料、三十一個節點，每一站都是現代文明的一條命脈。轉動地球，沿著供應鏈，把這本書走一遍。</p>
+  <button id="start">開 始 探 索</button>
+  <div class="src">資料來源：《供應鏈戰爭》Ed Conway 著 · 譚天 譯</div>
+</div>
+
+<div id="finale">
+  <div class="inner">
+    <div class="k">EPILOGUE · 你走完了原料世界</div>
+    <h2>下一座礦場，是我們丟棄的舊產品</h2>
+    <p>三十一個節點走完，你看到的是同一個故事的六種版本：文明仰賴極少數沉默的地方——一座小鎮的石英、一間電解池室的氯、一條破裂帶的結核。價格從不等於重要性；判斷一個物質是否關鍵，要問「它突然消失，世界會不會停擺」。</p>
+    <p>而能源轉型不會讓我們脫離原料世界，只會換一張地圖：減碳＝增礦，回收有衰減率，95% 的回收率在百年後只剩下不到六成的原料。看見這張地圖的人，才有資格談下一步。</p>
+    <button id="finale-close">回到地球</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+  "topojson-client":"https://cdn.jsdelivr.net/npm/topojson-client@3/+esm"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import * as topojson from 'topojson-client';
+
+/* ════════ DATA ════════ */
+const MATERIALS=[
+{id:'sand',zh:'砂',en:'SAND',color:0xeab308,css:'var(--sand)',hex:'#eab308',
+ tagline:'PART I · 從玻璃到晶片',
+ intro:'砂是文明最被低估的原料：玻璃給了科學一雙眼睛，混凝土是文明的骨架（占全球碳排 7–8%），而一粒石英要繞地球數圈、經過上萬道工序，才能成為你手機裡的晶片。',
+ rule:'<b>思考工具</b>：評估「供應鏈回流」政策時，往品牌下游挖兩層——去除任何一家無名公司，整條鏈即停擺。',
+ nodes:[
+  {name:'雲杉松 Spruce Pine',country:'美國・北卡羅來納',lat:35.91,lon:-82.06,spof:true,
+   role:'全球唯一的高純度石英產地。拉製單晶矽所用的 CZ 坩堝，原料只能來自這裡——半導體文明最大的單點故障。',
+   num:'全球 CZ 坩堝石英供應 ≈ 100% 來自此地',
+   story:'這個人口不到兩千的阿帕拉契小鎮，藏著半導體業最深的祕密。鎮上的礦業公司低調到沒有招牌，但若這裡斷供，全球晶片廠的坩堝庫存只夠撐數個月——iPhone、資料中心、戰機都將排隊停產。'},
+  {name:'洛哈林 Lochaline',country:'英國・蘇格蘭',lat:56.53,lon:-5.78,
+   role:'英國唯一的「銀砂」礦：含矽 99%、含鐵僅 70ppm。二戰時是英國光學工業的命脈。',
+   num:'SiO₂ 99% · Fe 70ppm',
+   story:'潛艇的潛望鏡、轟炸機的瞄準鏡，都需要無色的光學玻璃——而玻璃要無色，砂裡的鐵就必須低到百萬分之七十以下。二戰最黑暗的時刻，這座蘇格蘭海邊的白砂礦洞，是同盟國「看得見」的理由。今日它供應碳化矽與超清玻璃。'},
+  {name:'伯格豪森 Burghausen',country:'德國・巴伐利亞',lat:48.16,lon:12.83,
+   role:'瓦克化學（Wacker）：中國以外最大的多晶矽生產商。西門子製程在此把矽提純到「10 個九」。',
+   num:'純度 99.99999999%（10 個九）',
+   story:'把冶金級矽變成半導體級多晶矽，能源成本是製造水泥的 3,000 倍。爐子裡長出的多晶矽棒，純到「一個壞原子就報廢」的程度——這道工序中國至今未能完全掌握，是矽供應鏈上少數還留在西方手裡的環節。'},
+  {name:'台積電 Fab 18',country:'台灣・台南',lat:22.99,lon:120.25,spof:true,
+   role:'全球最先進的晶圓廠。EUV 製程量產，全球僅台積電與三星可為。',
+   num:'造價 ≈ 170 億美元',
+   story:'石英的最後一站。從雲杉松出發的砂，先在德國變成多晶矽，再被拉成單晶棒、切成晶圓，最後送進這座造價 170 億美元的廠房，被 EUV 光刻成數十億電晶體。一粒砂至此已旅行了數萬公里——這是人類製造過最長的供應鏈。'},
+  {name:'ASML 費爾德霍芬',country:'荷蘭',lat:51.42,lon:5.46,spof:true,
+   role:'EUV 極紫外光刻機的全球獨家供應商。沒有 ASML，就沒有先進製程。',
+   num:'EUV 單台 > 1.5 億美元',
+   story:'全世界只有一家公司能造出 EUV 光刻機：用每秒五萬滴的熔錫，被雷射轟兩次後發出極紫外光，再用史上最平滑的鏡面反射到晶圓上。一台機器要三架 747 才載得動。這就是「配方零容錯」的產業終局——集中到只剩一家。'},
+  {name:'湄公河三角洲',country:'越南',lat:9.80,lon:106.00,
+   role:'濫採建築砂的代價樣本：河床採砂掏空河岸、下沉三角洲。',
+   num:'每年流失 ≈ 2 平方哩土地',
+   story:'混凝土時代吃掉的砂比自然補充的多。在湄公河，挖砂船把河床越挖越深，海岸每天倒退 1.5 個足球場的面積；到 2100 年，近半個三角洲恐沒入海中。砂便宜到沒人記帳——直到土地開始消失。'}],
+ chains:[[0,2],[2,3],[4,3]]},
+
+{id:'salt',zh:'鹽',en:'SALT',color:0x7dd3fc,css:'var(--salt)',hex:'#7dd3fc',
+ tagline:'PART II · 權力、化工與火藥',
+ intro:'鹽是生存必需品，因此打從一開始就是權力與財政的工具。而現代化學工業——飲水消毒、肥皂、藥品、肥料、炸藥——全部建立在鹽之上：固定氮同時養活了半數人類，也延長了世界大戰。',
+ rule:'<b>思考工具</b>：分析任何資源，先問「誰控制它、誰被迫依賴它」——必需品供應鏈天生是權力槓桿。',
+ nodes:[
+  {name:'布爾比 Boulby',country:'英格蘭・北約克郡',lat:54.56,lon:-0.82,
+   role:'六千年前的新石器鹽廠（早於巨石陣千年）＋歐洲最深礦井，今日開採雜鹵石。',
+   num:'礦井深 1.5 公里',
+   story:'懸崖上的考古遺址證明：英國人煮鹽的歷史比巨石陣還老一千年。懸崖下方，礦工在 1.5 公里深處開採「許多鹽」——雜鹵石，硫鎂鈣的複合晶體，磨成粉就是低碳有機肥。每噸岩石都是一噸產品，全書的敘事在這裡開始、也在這裡結束。'},
+  {name:'柴郡鹽場',country:'英格蘭・柴郡',lat:53.19,lon:-2.52,
+   role:'英國鹽業心臟：水溶採礦法——「沒有礦工的礦」。',
+   num:'年產 200–400 萬噸',
+   story:'高壓水打進地下鹽層，抽上來的鹽水鹽度超過 30%（海水只有 3%），地表只看得到幾根管線。從羅馬時代煮到今天，柴郡的鹽進了食品廠、化工廠，冬天則撒在全英國的公路上。'},
+  {name:'隆科恩 Runcorn',country:'英格蘭・默西賽德',lat:53.33,lon:-2.73,spof:true,
+   role:'Inovyn 氯鹼廠：電解鹽水產出氯、氫與燒鹼——現代最重要卻最不為人知的工業製程。',
+   num:'供應全英 98% 的氯 · 耗電超過利物浦全市',
+   story:'一間電解池室，供應全英國 98% 的氯。氯停了，自來水七天內無法消毒，全國就得飲水配給。這是「沉默節點」的教科書案例：最致命的單點故障，往往是你從沒聽過的工廠。'},
+  {name:'阿塔卡馬硝石區',country:'智利・安托法加斯塔',lat:-23.65,lon:-70.40,
+   role:'caliche「魔鬼石」硝酸鈉鹽殼：十九世紀肥料與火藥的世界級來源。',
+   num:'硝石戰爭 1879–1884',
+   story:'這片沙漠的鹽殼引爆了改寫南美地圖的硝石戰爭——智利奪下硝、銅、鋰的國運資產，玻利維亞永遠失去海岸線。然後，1909 年哈伯在實驗室裡固定了大氣中的氮，一夕之間摧毀了整個智利硝酸鹽帝國。壟斷的最大威脅從來不是對手，而是替代技術。'},
+  {name:'威尼斯',country:'義大利',lat:45.44,lon:12.34,
+   role:'中世紀鹽業轉運壟斷者：「控制節點勝於控制產地」的原型。',
+   num:'鹽稅 ≈ 城邦收入 1/7',
+   story:'威尼斯不產鹽，卻靠艦隊與條約壟斷地中海的鹽運：進口噸位的三到五成是鹽，鹽務局貢獻城邦收入的七分之一。資本主義的第一堂課在鹽倉裡開講——誰控制必需品的流通，誰就不必擁有它。'}],
+ chains:[[1,2]]},
+
+{id:'iron',zh:'鐵',en:'IRON',color:0xef4444,css:'var(--iron)',hex:'#ef4444',
+ tagline:'PART III · 終極金屬',
+ intro:'鋼占人類金屬使用量的 95%。人均擁鋼量（富裕國約 15 噸、非洲不到 0.5 噸）是與 GDP 並列的真實生活水準指標。煉鋼是「人造岩漿」——而鐵的本質，是化石燃料的產品。',
+ rule:'<b>思考工具</b>：繪製供應鏈風險地圖時，追蹤工業設施的「副產品」流向——一縷廢氣可能是地球另一端產業的命脈。',
+ nodes:[
+  {name:'皮爾巴拉 Pilbara',country:'澳洲・西澳',lat:-22.69,lon:117.79,
+   role:'全球最大鐵礦區：45 億年的帶狀鐵岩層，前寒武紀海洋的遺跡。',
+   num:'澳洲開採量 > 巴西 2 倍、中國 3 倍',
+   story:'赤鐵礦（hematite）的字源是希臘文的「血」。在這片血紅色的土地上，力拓每 30 秒引爆一次礦山；2020 年，一次爆破炸毀了尤坎峽谷 4.6 萬年的原住民文化遺產——廉價鋼鐵的帳單上，有些項目永遠無法償還。'},
+  {name:'黑德蘭港 Port Hedland',country:'澳洲・西澳',lat:-20.31,lon:118.58,
+   role:'世界最大散裝出口港：鐵礦從這裡裝船，輸往中、日、韓。',
+   num:'世界第一大散裝港',
+   story:'漲潮的幾個小時內，比航母還長的散裝船魚貫出港，每艘載著二十多萬噸鐵礦。這條「鐵的海上輸送帶」一年運走數億噸土地——中國的城市天際線，就是從這個小鎮的碼頭開始的。'},
+  {name:'沙鋼集團',country:'中國・張家港',lat:31.98,lon:120.51,
+   role:'全球最大鋼廠：13 座鼓風爐。前身之一是整座拆運來華的德國蒂森克魯伯廠。',
+   num:'中國每 2 年產鋼 > 英國工業革命以來總和',
+   story:'二〇〇〇年代初，一千名中國工人把魯爾區的一整座鋼廠拆成 25 萬噸零件，標號、裝船、運回長江邊重組——鋼鐵無祖國。今天這座廠一年的產量，超過全英國所有鋼廠的總和。'},
+  {name:'亞速鋼鐵廠 Azovstal',country:'烏克蘭・馬里烏波爾',lat:47.10,lon:37.55,spof:true,
+   role:'歐洲鐵路鋼軌的來源之一；副產品氖氣占全球近半——晶片光刻雷射的關鍵氣體。',
+   num:'全球氖氣供應 ≈ 50%',
+   story:'2022 年，這座廠在圍城下堅守了 80 天，成為戰爭的象徵。但世界另一端的晶片廠同樣屏息：煉鋼空分設備的副產品氖氣，供應全球近半的光刻雷射用氣。一座鋼廠的煙囪熄火，半導體業就跟著缺氣——供應鏈的蝴蝶效應，藏在副產品裡。'},
+  {name:'塔爾伯港 Port Talbot',country:'英國・威爾斯',lat:51.56,lon:-3.78,
+   role:'英國最大鋼廠，也是全國最大單一碳排放源。',
+   num:'軋鋼速度 1,000 公尺/分 · 公差 0.05mm',
+   story:'中世紀式的原始火光包著奈米級的精密科技：鐵水在鹼性氧氣轉爐裡被超音速純氧轟 20 分鐘，含碳量從 4% 降到 0.4%，再以每分鐘一公里的速度軋成公差 0.05 毫米的鋼板。它的礦來自瑞典、煤來自澳洲、錳依賴烏克蘭——「英國鋼」其實是世界的。'}],
+ chains:[[0,1],[1,2]]},
+
+{id:'copper',zh:'銅',en:'COPPER',color:0x2dd4bf,css:'var(--copper)',hex:'#2dd4bf',
+ tagline:'PART IV · 文明的神經系統',
+ intro:'鋼是骨架、混凝土是血肉，銅是文明的神經系統——所有電的事都是銅的事。而減碳＝增銅：電動車用銅是油車的 3–4 倍，岸外風電是 10 倍。',
+ rule:'<b>思考工具</b>：聽到「資源只剩 N 年」，先查長期實質價格與儲量補充速度——儲藏量是商業規畫數字，不是地質極限。',
+ nodes:[
+  {name:'丘基卡馬塔 Chuquicamata',country:'智利・阿塔卡馬',lat:-22.29,lon:-68.90,
+   role:'史上累計產銅最多的礦場：全球每 13 克銅，就有 1 克出自這個「洞」。',
+   num:'累計產銅 ≈ 4,500 萬噸 · 礦坑可容納整座哈里發塔',
+   story:'礦石等級一百年間從 2.4% 跌到不足 1%，銅的實質價格卻幾乎持平——這就是「銅峰值」預言一再落空的原因：採礦有自己的摩爾定律。以工資計算，一噸銅在羅馬時代要 40 年薪水，1800 年要 6 年，2000 年只要 0.06 年。但代價也在累積：每噸銅的礦石開挖量，已從 50 噸變成 800 噸。'},
+  {name:'史文西 Swansea',country:'英國・威爾斯',lat:51.62,lon:-3.94,
+   role:'十九世紀「銅都」（Copperopolis）：不產銅，卻靠煤與冶煉壟斷全球煉銅。',
+   num:'巔峰期掌控全球 65% 煉銅',
+   story:'煉一噸銅礦要燒三噸煤，所以礦石漂洋過海來找煤。智利的銅礦船繞過合恩角航向威爾斯，航程約三個月——倫敦金屬交易所「三個月交割」的傳統由此而來。今天不產銅卻熔煉全球近半銅礦的中國，是史文西的繼承者。'},
+  {name:'克利珀頓破裂帶 CCZ',country:'太平洋公海',lat:13.50,lon:-125.00,
+   role:'海底多金屬結核最密集的水域：深海採礦的主戰場。',
+   num:'蘊藏 2.3 億噸銅 · 2.7 億噸鎳',
+   story:'四五千公尺深的海床上，鋪滿馬鈴薯大小的結核——銅、鎳、鈷、錳的天然合集。但每顆結核要數百萬年才長成，而且是這片深海半數較大物種的棲息地。對人類最不了解的生態系動手，風險無法定價。'},
+  {name:'國際海底管理局 ISA',country:'牙買加・京斯頓',lat:17.97,lon:-76.79,
+   role:'公海礦權的分配中樞：一個從未拒絕過申請的監管機構。',
+   num:'中國持有 4 份合約・居各國之首',
+   story:'決定深海命運的機構，辦公室裡沒有船、沒有潛水器，預算少得可憐，而且從未拒絕過任何採礦申請。歷史的另一個提示是：激進方案常敗給平淡的漸進技術——核爆採礦輸給了堆浸法，深海採礦也可能輸給廢礦堆再提煉。'},
+  {name:'格拉斯伯格 Grasberg',country:'印尼・巴布亞',lat:-4.06,lon:137.12,
+   role:'全球最大金礦＋第二大銅儲藏：超巨型化與少人化的極致。',
+   num:'海拔 4,000 公尺 · 23 公里自動駕駛地下鐵',
+   story:'在赤道的雪線旁，礦車在 23 公里長的地下鐵裡無人駕駛地穿行。露天坑挖完了就轉入地下「區塊開採」——讓整座山在控制下自行塌陷。這是銅礦業的未來式：更大、更深、更少人。'}],
+ chains:[[0,1]]},
+
+{id:'oil',zh:'油',en:'OIL',color:0xa78bfa,css:'var(--oil)',hex:'#a78bfa',
+ tagline:'PART V · 現代世界的食物',
+ intro:'石油是現代世界的「食物」：燃料、肥料、塑膠、藥品的共同源頭。化石燃料占初級能源的比例，1980 年是 85%，2019 年仍超過 80%——能源轉型比聲量慢得多。',
+ rule:'<b>思考工具</b>：判斷一國「能源獨立」，檢查煉油設備與本國油種是否匹配——美國產輕油、煉油廠吃重油，產量第一仍須進口。',
+ nodes:[
+  {name:'加瓦爾油田 Ghawar',country:'沙烏地阿拉伯',lat:25.43,lon:49.62,spof:true,
+   role:'世界最大油田——獨一無二的「大象」。全球石油權力建立在極少數這樣的地質奇觀上。',
+   num:'175×19 哩 · 已產 700 億桶 · 日產 380 萬桶',
+   story:'沙漠下方的一塊侏羅紀儲油岩，單獨供應全球約 4% 的原油，七十年不衰。找油人的行話把超巨型油田叫「大象」——而加瓦爾是唯一的那頭。地質學不講平等：誰的地下有大象，誰就坐上牌桌。'},
+  {name:'拉斯坦努拉 Ras Tanura',country:'沙烏地阿拉伯',lat:26.64,lon:50.16,spof:true,
+   role:'世界最大石油輸出港：VLCC 超級油輪的樞紐。',
+   num:'位於伊朗飛彈射程內',
+   story:'全球能源系統最脆弱的一個點：世界最大油田的油，從世界最大的輸出港裝船，而這座港口在伊朗飛彈的射程之內。2019 年無人機襲擊沙國設施後油價單日跳漲 15%——市場早就知道這裡是要害。'},
+  {name:'二疊紀盆地 Permian',country:'美國・德州',lat:31.87,lon:-102.39,
+   role:'頁岩革命主場：水力壓裂＋水平鑽井，直接從生油岩裡採油。',
+   num:'86,000 平方哩 · 美國油產 14 年翻倍',
+   story:'傳統找油是找「儲油岩」——油氣百萬年來滲入積聚的多孔岩層。頁岩革命反其道而行：直接鑽進生成石油的母岩，用高壓液把它壓裂。這個工程暴力讓美國 2007–2021 年油產翻倍、重登世界第一，順手改寫了 OPEC 的權力結構。'},
+  {name:'韋瑟靈煉油廠',country:'德國・科隆',lat:50.83,lon:6.98,
+   role:'德國最大煉油廠：一座廠橫跨三個能源時代。',
+   num:'納粹合成燃料 → 煉油 → 2025 綠氫',
+   story:'二戰本質上是煉油廠之戰：這座廠誕生時是納粹的合成燃料基地，盟軍轟炸機把它列為頭號目標。戰後它變成德國最大煉油廠，如今又要轉型製造綠氫。煉油是供應鏈上最被忽視的「煉金術」——原油不經這一站，什麼都不是。'},
+  {name:'拉斯拉凡 Ras Laffan',country:'卡達',lat:25.91,lon:51.55,spof:true,
+   role:'北方氣田的 LNG 樞紐：單一設施供應全球約 4% 的能源。',
+   num:'> 全球太陽能＋風電的總和',
+   story:'這座 LNG 廠輸出的能量，比全世界所有太陽能板加風機的總出力還多——一座設施對六大洲的暖氣與電網。俄烏戰爭後歐洲的救命氣就從這裡裝船。談「轉型完成」之前，先看看這個數字。'}],
+ chains:[[0,1]]},
+
+{id:'lithium',zh:'鋰',en:'LITHIUM',color:0x4ade80,css:'var(--lithium)',hex:'#4ade80',
+ tagline:'PART VI · 能源轉型的新支柱',
+ intro:'鋰是宇宙最古老的元素之一，卻是能源轉型最新的支柱。電動車革命的核心是電池而非汽車，電池的價值在材料而非工程——掌控陰極材料與量產者，掌控二十一世紀的汽車工業。',
+ rule:'<b>思考工具</b>：聽到「循環經濟」宣稱時檢查衰減率——95% 回收率每十年回爐一次，百年後原始材料剩不到 60%。回收是補充，不是替代開採。',
+ nodes:[
+  {name:'阿塔卡馬鹽湖',country:'智利',lat:-23.50,lon:-68.25,
+   role:'世界最大單一鋰產地：蒸發 300 萬年的地下鹽水。',
+   num:'地下鹽水池年齡 ≈ 300 萬年',
+   story:'巨大的藍綠色蒸發池在地球最乾的沙漠裡攤開，像一塊塊電路板。抽出史前鹽水、靠陽光濃縮成碳酸鋰——「綠色」革命的第一站，是用一種環境足跡換另一種：這裡的生態衝擊，未知遠多於已知。'},
+  {name:'特斯拉超級工廠',country:'美國・內華達州',lat:39.54,lon:-119.44,
+   role:'一號超級工廠：用萊特定律把電池價格打下來的豪賭。',
+   num:'33 個足球場大 · 已產逾 10 億顆電池',
+   story:'萊特定律說：產量每翻倍，成本約降 15%。鋰電池從 1991 年的每 kWh 7,500 美元，跌到 2018 年的 181 美元——靠的就是這種瘋狂的規模化。但廠房三分之二其實屬於松下：電池的核心技術，始終在亞洲手裡。'},
+  {name:'寧德時代 CATL',country:'中國・福建寧德',lat:26.66,lon:119.55,spof:true,
+   role:'全球電池霸主。中國掌控陰極材料與電池產能的「雙 80%」。',
+   num:'陰極材料 ≈80% · 電池產能 ≈80% 在中國',
+   story:'汽油車時代，價值最高的組件是引擎，握在歐美日車廠手裡；電動車時代，價值最高的是電池與陰極活性材料——而它們在亞洲。組件價值的轉移就是產業權力的轉移：這是汽車工業百年來最大的一次政權更迭。'},
+  {name:'卡坦加 Katanga',country:'剛果民主共和國',lat:-10.72,lon:25.47,
+   role:'全球鈷供應的心臟：礦石等級是其他地方的十倍以上。',
+   num:'鈷礦等級 10–15%（他處 < 1%）',
+   story:'電池需要鈷，而鈷在這裡。卡坦加的礦床濃得不可思議——廣島原子彈的鈾（70% 濃度）也來自這裡的辛可羅威礦。從比利時殖民者到今日的礦業巨頭與手工礦工，這片土地一百年來都在替別人的科技革命買單。'},
+  {name:'優美科 Umicore',country:'比利時・霍博肯',lat:51.17,lon:4.34,
+   role:'從殖民榨取機器（前身剛果聯合礦業）轉身為電池回收先驅——「都市礦廠」。',
+   num:'95% 回收率 ≠ 真循環',
+   story:'未來的礦場是我們丟棄的舊產品：廢手機、舊電池在這裡被熔煉回金屬。但別急著宣告勝利——即使 95% 的回收率，材料每十年回爐一次，一百年後原始原料只剩不到六成。循環經濟是希望，不是免死金牌；新的開採不可避免。'}],
+ chains:[[0,2],[0,1],[3,2]]}
+];
+
+/* ════════ STATE ════════ */
+const visited=new Set();
+let activeMat=null;       // null = overview
+let spofMode=false;
+let selected=null;        // {mi,ni}
+const totalNodes=MATERIALS.reduce((s,m)=>s+m.nodes.length,0);
+document.getElementById('p-t').textContent=totalNodes;
+
+/* ════════ THREE SETUP ════════ */
+const R=2;
+const container=document.getElementById('scene');
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+container.appendChild(renderer.domElement);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.1,100);
+camera.position.set(0,1.1,5.6);
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;controls.dampingFactor=.06;
+controls.minDistance=3;controls.maxDistance=9;
+controls.enablePan=false;controls.rotateSpeed=.45;
+controls.autoRotate=true;controls.autoRotateSpeed=.35;
+
+scene.add(new THREE.AmbientLight(0xffffff,1.15));
+const sun=new THREE.DirectionalLight(0xfff4d6,1.2);sun.position.set(5,3,4);scene.add(sun);
+const rim=new THREE.DirectionalLight(0x4060a0,.7);rim.position.set(-5,-2,-4);scene.add(rim);
+
+/* starfield */
+{
+  const g=new THREE.BufferGeometry();const N=1600;const pos=new Float32Array(N*3);
+  for(let i=0;i<N;i++){const v=new THREE.Vector3().randomDirection().multiplyScalar(30+Math.random()*40);
+    pos[i*3]=v.x;pos[i*3+1]=v.y;pos[i*3+2]=v.z;}
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0x8899bb,size:.05,transparent:true,opacity:.7})));
+}
+
+/* globe group */
+const globe=new THREE.Group();scene.add(globe);
+
+/* base sphere (placeholder material; texture applied after land loads) */
+const sphereMat=new THREE.MeshPhongMaterial({color:0x0a1424,shininess:8});
+const sphere=new THREE.Mesh(new THREE.SphereGeometry(R,96,96),sphereMat);
+globe.add(sphere);
+
+/* atmosphere */
+{
+  const m=new THREE.ShaderMaterial({
+    transparent:true,side:THREE.BackSide,depthWrite:false,
+    uniforms:{},
+    vertexShader:`varying vec3 vN;void main(){vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`varying vec3 vN;void main(){float a=pow(.62-dot(vN,vec3(0.,0.,1.)),3.);gl_FragColor=vec4(.35,.55,.95,1.)*a*1.4;}`
+  });
+  globe.add(new THREE.Mesh(new THREE.SphereGeometry(R*1.14,64,64),m));
+}
+
+/* land texture from world-atlas */
+async function loadLand(){
+  try{
+    const res=await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json');
+    const topo=await res.json();
+    const land=topojson.feature(topo,topo.objects.land);
+    const W=4096,H=2048;
+    const cv=document.createElement('canvas');cv.width=W;cv.height=H;
+    const ctx=cv.getContext('2d');
+    /* ocean */
+    const og=ctx.createLinearGradient(0,0,0,H);
+    og.addColorStop(0,'#08101f');og.addColorStop(.5,'#0a1628');og.addColorStop(1,'#08101f');
+    ctx.fillStyle=og;ctx.fillRect(0,0,W,H);
+    /* faint graticule */
+    ctx.strokeStyle='rgba(140,160,200,.07)';ctx.lineWidth=1.5;
+    for(let lon=-180;lon<=180;lon+=30){const x=(lon+180)/360*W;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let lat=-60;lat<=60;lat+=30){const y=(90-lat)/180*H;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    /* land */
+    const X=lon=>(lon+180)/360*W, Y=lat=>(90-lat)/180*H;
+    ctx.fillStyle='#243245';
+    ctx.strokeStyle='rgba(232,227,216,.30)';ctx.lineWidth=2;
+    const polys=land.features.flatMap(f=>f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates);
+    for(const poly of polys){
+      ctx.beginPath();
+      for(const ring of poly){
+        ring.forEach((c,i)=>{const x=X(c[0]),y=Y(c[1]);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+        ctx.closePath();
+      }
+      ctx.fill();ctx.stroke();
+    }
+    const tex=new THREE.CanvasTexture(cv);
+    tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=8;
+    sphereMat.map=tex;sphereMat.color.set(0xffffff);sphereMat.needsUpdate=true;
+  }catch(e){
+    toast('地圖資料載入失敗（需網路連線）— 以簡化模式顯示');
+  }
+}
+loadLand();
+
+/* ════════ NODES & ARCS ════════ */
+const latLon2v=(lat,lon,r=R)=>{
+  const phi=(90-lat)*Math.PI/180, theta=(lon+180)*Math.PI/180;
+  return new THREE.Vector3(-r*Math.sin(phi)*Math.cos(theta),r*Math.cos(phi),r*Math.sin(phi)*Math.sin(theta));
+};
+
+const nodeMeshes=[];   // {mesh,ring,mi,ni,labelEl,pos}
+const arcGroups=[];    // {mi,lines:[],dots:[]}
+const labelLayer=document.body;
+
+MATERIALS.forEach((mat,mi)=>{
+  const arcs={mi,lines:[],dots:[]};
+  mat.nodes.forEach((nd,ni)=>{
+    const pos=latLon2v(nd.lat,nd.lon,R*1.005);
+    const m=new THREE.Mesh(new THREE.SphereGeometry(.028,16,16),
+      new THREE.MeshBasicMaterial({color:mat.color}));
+    m.position.copy(pos);globe.add(m);
+    /* halo ring */
+    const ring=new THREE.Mesh(new THREE.RingGeometry(.045,.055,32),
+      new THREE.MeshBasicMaterial({color:mat.color,transparent:true,opacity:.8,side:THREE.DoubleSide}));
+    ring.position.copy(pos);ring.lookAt(pos.clone().multiplyScalar(2));globe.add(ring);
+    /* spof ring (red, pulsing — only in spof mode) */
+    let spofRing=null;
+    if(nd.spof){
+      spofRing=new THREE.Mesh(new THREE.RingGeometry(.07,.082,32),
+        new THREE.MeshBasicMaterial({color:0xef4444,transparent:true,opacity:0,side:THREE.DoubleSide}));
+      spofRing.position.copy(pos);spofRing.lookAt(pos.clone().multiplyScalar(2));globe.add(spofRing);
+    }
+    /* hit sphere (bigger, invisible) */
+    const hit=new THREE.Mesh(new THREE.SphereGeometry(.09,8,8),
+      new THREE.MeshBasicMaterial({visible:false}));
+    hit.position.copy(pos);hit.userData={mi,ni};globe.add(hit);
+    /* html label */
+    const el=document.createElement('div');
+    el.className='nlabel';el.textContent=nd.name.split(' ')[0];
+    el.style.setProperty('--lc',mat.hex);
+    el.addEventListener('click',()=>selectNode(mi,ni,true));
+    labelLayer.appendChild(el);
+    nodeMeshes.push({mesh:m,ring,spofRing,hit,mi,ni,labelEl:el,pos});
+  });
+  /* arcs */
+  mat.chains.forEach(([a,b])=>{
+    const va=latLon2v(mat.nodes[a].lat,mat.nodes[a].lon,R*1.005);
+    const vb=latLon2v(mat.nodes[b].lat,mat.nodes[b].lon,R*1.005);
+    const dist=va.distanceTo(vb);
+    const mid=va.clone().add(vb).multiplyScalar(.5).normalize().multiplyScalar(R*(1+dist*.16));
+    const curve=new THREE.QuadraticBezierCurve3(va,mid,vb);
+    const pts=curve.getPoints(80);
+    const geo=new THREE.BufferGeometry().setFromPoints(pts);
+    const line=new THREE.Line(geo,new THREE.LineDashedMaterial({
+      color:mat.color,transparent:true,opacity:.55,dashSize:.06,gapSize:.04}));
+    line.computeLineDistances();globe.add(line);
+    const dot=new THREE.Mesh(new THREE.SphereGeometry(.018,8,8),
+      new THREE.MeshBasicMaterial({color:0xffffff}));
+    globe.add(dot);
+    arcs.lines.push(line);arcs.dots.push({mesh:dot,curve,t:Math.random()});
+  });
+  arcGroups.push(arcs);
+});
+
+/* ════════ UI BUILD ════════ */
+const rail=document.getElementById('rail');
+const allBtn=document.createElement('button');
+allBtn.className='mat-btn active';allBtn.style.setProperty('--c','#e8e3d8');
+allBtn.innerHTML=`<span class="dot"></span><span class="zh">總覽</span><span class="en">ALL</span>`;
+allBtn.addEventListener('click',()=>setMaterial(null));
+rail.appendChild(allBtn);
+const matBtns=[allBtn];
+MATERIALS.forEach((m,i)=>{
+  const b=document.createElement('button');
+  b.className='mat-btn';b.style.setProperty('--c',m.hex);
+  b.innerHTML=`<span class="dot"></span><span class="zh">${m.zh}</span><span class="en">${m.en}</span><span class="cnt">${m.nodes.length}</span>`;
+  b.addEventListener('click',()=>setMaterial(i));
+  rail.appendChild(b);matBtns.push(b);
+});
+
+const icard=document.getElementById('intro-card');
+function setMaterial(mi){
+  activeMat=mi;
+  matBtns.forEach((b,j)=>b.classList.toggle('active',j===(mi===null?0:mi+1)));
+  if(mi===null){icard.classList.add('hidden');}
+  else{
+    const m=MATERIALS[mi];
+    icard.style.setProperty('--mc',m.hex);
+    document.getElementById('ic-label').textContent=m.tagline;
+    document.getElementById('ic-title').textContent=m.zh==='油'?'石油':({砂:'砂',鹽:'鹽',鐵:'鐵',銅:'銅',鋰:'鋰'})[m.zh]||m.zh;
+    document.getElementById('ic-title').textContent={sand:'砂 — 從玻璃到晶片',salt:'鹽 — 權力與化工',iron:'鐵 — 終極金屬',copper:'銅 — 文明的神經',oil:'石油 — 世界的食物',lithium:'鋰 — 白色黃金'}[m.id];
+    document.getElementById('ic-text').textContent=m.intro;
+    document.getElementById('ic-rule').innerHTML=m.rule;
+    icard.classList.remove('hidden');
+  }
+  updateVisibility();
+  if(selected&&mi!==null&&selected.mi!==mi)closeCard();
+}
+
+function updateVisibility(){
+  nodeMeshes.forEach(n=>{
+    const on=activeMat===null||n.mi===activeMat;
+    const dim=spofMode&&!MATERIALS[n.mi].nodes[n.ni].spof;
+    n.mesh.visible=on;n.ring.visible=on&&!dim;n.hit.visible=true;
+    n.mesh.material.opacity=dim?.18:1;n.mesh.material.transparent=true;
+    n.labelEl.style.display=on?'':'none';
+    n.labelEl.style.opacity=dim?.25:'';
+  });
+  arcGroups.forEach(g=>{
+    const on=(activeMat===null||g.mi===activeMat)&&!spofMode;
+    g.lines.forEach(l=>l.visible=on);
+    g.dots.forEach(d=>d.mesh.visible=on);
+  });
+}
+
+/* ════════ SELECT / CARD ════════ */
+const card=document.getElementById('card');
+function selectNode(mi,ni,flyTo){
+  selected={mi,ni};
+  const m=MATERIALS[mi],nd=m.nodes[ni];
+  card.style.setProperty('--cc',m.hex);
+  document.getElementById('c-mat').textContent=`${m.en} · ${m.zh}之路 ${ni+1}/${m.nodes.length}`;
+  document.getElementById('c-coord').textContent=`${Math.abs(nd.lat).toFixed(1)}°${nd.lat>=0?'N':'S'} ${Math.abs(nd.lon).toFixed(1)}°${nd.lon>=0?'E':'W'}`;
+  document.getElementById('c-name').textContent=nd.name;
+  document.getElementById('c-country').textContent=nd.country;
+  document.getElementById('c-role').textContent=nd.role;
+  document.getElementById('c-num').textContent=nd.num;
+  document.getElementById('c-story').textContent=nd.story;
+  document.getElementById('c-spof').innerHTML=nd.spof?'<span class="spof-tag">⚠ SINGLE POINT OF FAILURE · 單點故障節點</span>':'';
+  card.classList.remove('hidden');
+  if(!visited.has(mi+'-'+ni)){
+    visited.add(mi+'-'+ni);
+    updateProgress();
+  }
+  nodeMeshes.forEach(n=>n.labelEl.classList.toggle('sel',n.mi===mi&&n.ni===ni));
+  const rec=nodeMeshes.find(n=>n.mi===mi&&n.ni===ni);
+  if(rec)rec.labelEl.classList.add('visited');
+  if(flyTo)fly(latLon2v(nd.lat,nd.lon,1));
+  controls.autoRotate=false;
+}
+function closeCard(){card.classList.add('hidden');selected=null;
+  nodeMeshes.forEach(n=>n.labelEl.classList.remove('sel'));}
+document.getElementById('card-close').addEventListener('click',closeCard);
+document.getElementById('c-prev').addEventListener('click',()=>step(-1));
+document.getElementById('c-next').addEventListener('click',()=>step(1));
+function step(d){
+  if(!selected)return;
+  const m=MATERIALS[selected.mi];
+  let ni=selected.ni+d;
+  let mi=selected.mi;
+  if(ni<0){mi=(mi+MATERIALS.length-1)%MATERIALS.length;ni=MATERIALS[mi].nodes.length-1;}
+  if(ni>=m.nodes.length){mi=(mi+1)%MATERIALS.length;ni=0;}
+  if(activeMat!==null&&mi!==activeMat)setMaterial(mi);
+  selectNode(mi,ni,true);
+}
+
+function updateProgress(){
+  document.getElementById('p-n').textContent=visited.size;
+  document.getElementById('p-fill').style.width=(visited.size/totalNodes*100)+'%';
+  if(visited.size===totalNodes){
+    setTimeout(()=>document.getElementById('finale').classList.add('show'),700);
+  }
+}
+document.getElementById('finale-close').addEventListener('click',()=>document.getElementById('finale').classList.remove('show'));
+
+/* fly camera so node faces viewer */
+let flyAnim=null;
+function fly(dir){
+  const from=camera.position.clone();
+  const dist=from.length();
+  const to=dir.clone().applyQuaternion(globe.quaternion).normalize().multiplyScalar(dist);
+  /* keep slight elevation */
+  flyAnim={from,to,t:0};
+}
+
+/* ════════ SPOF MODE ════════ */
+const spofBtn=document.getElementById('spof-toggle');
+spofBtn.addEventListener('click',()=>{
+  spofMode=!spofMode;
+  spofBtn.classList.toggle('on',spofMode);
+  updateVisibility();
+  toast(spofMode?'⚠ 顯示 9 個單點故障節點 — 任一處停擺，全球供應鏈即受創':'已關閉單點故障模式');
+});
+
+/* ════════ PICKING ════════ */
+const ray=new THREE.Raycaster();const ptr=new THREE.Vector2();
+let downAt=null;
+renderer.domElement.addEventListener('pointerdown',e=>{downAt=[e.clientX,e.clientY];});
+renderer.domElement.addEventListener('pointerup',e=>{
+  if(!downAt)return;
+  const dx=e.clientX-downAt[0],dy=e.clientY-downAt[1];
+  downAt=null;
+  if(dx*dx+dy*dy>25)return; /* drag, not click */
+  ptr.x=(e.clientX/innerWidth)*2-1;ptr.y=-(e.clientY/innerHeight)*2+1;
+  ray.setFromCamera(ptr,camera);
+  const hits=ray.intersectObjects(nodeMeshes.map(n=>n.hit));
+  if(hits.length){
+    const {mi,ni}=hits[0].object.userData;
+    if(activeMat!==null&&mi!==activeMat)setMaterial(mi);
+    selectNode(mi,ni,false);
+  }
+});
+renderer.domElement.addEventListener('pointermove',e=>{
+  ptr.x=(e.clientX/innerWidth)*2-1;ptr.y=-(e.clientY/innerHeight)*2+1;
+  ray.setFromCamera(ptr,camera);
+  const hits=ray.intersectObjects(nodeMeshes.map(n=>n.hit).filter(h=>{
+    const rec=nodeMeshes.find(n=>n.hit===h);return activeMat===null||rec.mi===activeMat;}));
+  renderer.domElement.style.cursor=hits.length?'pointer':'grab';
+});
+
+/* ════════ TOAST ════════ */
+let toastTimer=null;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),3600);
+}
+
+/* ════════ OVERLAY ════════ */
+document.getElementById('start').addEventListener('click',()=>{
+  document.getElementById('overlay').classList.add('hidden');
+  toast('左側選擇一種材料，開始沿著供應鏈旅行');
+});
+
+/* ════════ RENDER LOOP ════════ */
+const tmpV=new THREE.Vector3();
+const clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=clock.getDelta(), t=clock.elapsedTime;
+  controls.update();
+
+  /* fly animation */
+  if(flyAnim){
+    flyAnim.t+=dt*1.4;
+    const k=flyAnim.t>=1?1:1-Math.pow(1-flyAnim.t,3);
+    camera.position.copy(flyAnim.from.clone().normalize().lerp(flyAnim.to.clone().normalize(),k)
+      .normalize().multiplyScalar(flyAnim.from.length()));
+    camera.lookAt(0,0,0);
+    if(flyAnim.t>=1)flyAnim=null;
+  }
+
+  /* pulse rings */
+  nodeMeshes.forEach((n,i)=>{
+    const s=1+Math.sin(t*2.2+i)*0.18;
+    n.ring.scale.setScalar(s);
+    if(n.spofRing){
+      const on=spofMode;
+      n.spofRing.material.opacity=on?(.45+.4*Math.sin(t*4+i)):0;
+      n.spofRing.scale.setScalar(1+(on?Math.sin(t*4+i)*.25:0));
+    }
+  });
+
+  /* arc particles */
+  arcGroups.forEach(g=>{
+    g.dots.forEach(d=>{
+      d.t=(d.t+dt*.13)%1;
+      d.mesh.position.copy(d.curve.getPoint(d.t).applyMatrix4(new THREE.Matrix4()));
+      d.mesh.position.copy(d.curve.getPoint(d.t));
+    });
+  });
+
+  /* labels */
+  const camDir=camera.position.clone().normalize();
+  nodeMeshes.forEach(n=>{
+    if(n.labelEl.style.display==='none')return;
+    tmpV.copy(n.pos).applyQuaternion(globe.quaternion);
+    const facing=tmpV.clone().normalize().dot(camDir);
+    if(facing<0.18){n.labelEl.classList.add('behind');return;}
+    n.labelEl.classList.remove('behind');
+    tmpV.project(camera);
+    n.labelEl.style.left=((tmpV.x+1)/2*innerWidth)+'px';
+    n.labelEl.style.top=((-tmpV.y+1)/2*innerHeight)+'px';
+  });
+
+  renderer.render(scene,camera);
+}
+animate();
+
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+updateVisibility();
+</script>
+</body>
+</html>
